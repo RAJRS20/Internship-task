@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Alert } from "react-native";
+// modal.tsx
+
+import React, { useState } from "react";
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Alert, Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import Toast from "react-native-toast-message";
 
 export type Entry = {
@@ -12,7 +14,7 @@ export type Entry = {
   description: string;
   image?: string;
   location?: string;
-  date: string;
+  date: string; // Changed to ISO string format
 };
 
 export default function AddEntryModal() {
@@ -49,31 +51,46 @@ export default function AddEntryModal() {
     const entries: Entry[] = data ? JSON.parse(data) : [];
 
     if (entryId) {
-      // Edit existing entry
+      // Logic for editing existing entry
       const updated = entries.map(e =>
-        e.id === entryId ? { ...e, title, description: desc, image: image ?? undefined, location: location ?? undefined } : e
+        e.id === entryId ? { 
+            ...e, 
+            title, 
+            description: desc, 
+            image: image ?? undefined, 
+            location: location ?? undefined 
+        } : e
       );
       await AsyncStorage.setItem("entries", JSON.stringify(updated));
       Toast.show({ type: "success", text1: "✏️ Entry Updated!" });
     } else {
-      // Add new entry
+      // Logic for adding new entry
       const newEntry: Entry = {
         id: Date.now().toString(),
         title,
         description: desc,
         image: image ?? undefined,
         location: location ?? undefined,
-        date: new Date().toLocaleString(),
+        date: new Date().toISOString(), // <-- FIX: Use ISO string for proper date format
       };
-      await AsyncStorage.setItem("entries", JSON.stringify([...entries, newEntry]));
+      await AsyncStorage.setItem("entries", JSON.stringify([newEntry, ...entries]));
       Toast.show({ type: "success", text1: "🌟 New Entry Added!" });
     }
 
-    router.back(); // go back to Explore tab
+    router.back();
   };
 
   return (
     <View style={styles.container}>
+      {/* < BACK BUTTON */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Text style={styles.backText}>{'<'}</Text>
+      </TouchableOpacity>
+      {/* ------------------------ */}
+      
       <Text style={styles.heading}>{entryId ? "Edit Entry ✏️" : "Add New Entry ✨"}</Text>
 
       <TextInput
@@ -113,7 +130,24 @@ export default function AddEntryModal() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  container: { 
+    flex: 1, 
+    paddingHorizontal: 20, 
+    backgroundColor: "#fff",
+    paddingTop: Platform.OS === 'android' ? 30 : 60,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 2 : 5,
+    left: 2,
+    zIndex: 10,
+    padding: 5,
+  },
+  backText: {
+    fontSize: 30, 
+    color: '#007AFF',
+    fontWeight: '300',
+  },
   heading: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
   input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, marginBottom: 10 },
   button: { backgroundColor: "#007bff", padding: 12, borderRadius: 8, marginVertical: 8, alignItems: "center" },

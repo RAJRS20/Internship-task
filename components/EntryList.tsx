@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { SwipeListView } from "react-native-swipe-list-view";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -8,7 +8,7 @@ export interface Entry {
   title: string;
   description?: string;
   image?: string;
-  location?: string;
+  location?: string | { latitude: number; longitude: number };
   date: string;
 }
 
@@ -18,7 +18,7 @@ interface EntryListProps {
   reload?: () => void;
 }
 
-export default function EntryList({ entries, setEntries, reload }: EntryListProps) {
+export default function EntryList({ entries, setEntries }: EntryListProps) {
   const deleteEntry = async (id: string) => {
     const newEntries = entries.filter((e) => e.id !== id);
     setEntries(newEntries);
@@ -28,15 +28,27 @@ export default function EntryList({ entries, setEntries, reload }: EntryListProp
   return (
     <SwipeListView
       data={entries}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item, index) => item.id?.toString() || index.toString()}
       renderItem={({ item }) => (
         <View style={styles.rowFront}>
           <View style={styles.textContainer}>
             <Text style={styles.title}>{item.title}</Text>
-            {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
-            {item.location ? <Text style={styles.location}>📍 {item.location}</Text> : null}
+            {item.description ? (
+              <Text style={styles.description}>{item.description}</Text>
+            ) : null}
+            {item.location ? (
+              typeof item.location === "string" ? (
+                <Text style={styles.location}>📍 {item.location}</Text>
+              ) : (
+                <Text style={styles.location}>
+                  📍 {item.location.latitude}, {item.location.longitude}
+                </Text>
+              )
+            ) : null}
           </View>
-          {item.image ? <Image source={{ uri: item.image }} style={styles.image} /> : null}
+          {item.image ? (
+            <Image source={{ uri: item.image }} style={styles.image} />
+          ) : null}
         </View>
       )}
       renderHiddenItem={({ item }) => (
